@@ -82,3 +82,35 @@ export function robotEventStatus(
   if (type.endsWith(".errored")) return "errored";
   return null;
 }
+
+const TEXT_TRACK_TYPES = new Set(["text", "subtitle", "subtitles", "caption", "captions"]);
+const TEXT_TRACK_KINDS = new Set(["subtitles", "captions", "closed_captions"]);
+const GENERATED_TEXT_SOURCES = new Set([
+  "generated_vod",
+  "generated_live",
+  "generated_live_final",
+  "uploaded",
+  "embedded",
+]);
+
+export function isReadyCaptionTrack(data: {
+  type?: string;
+  text_type?: string;
+  text_source?: string;
+  status?: string;
+}): boolean {
+  const status = data.status?.toLowerCase();
+  if (status && status !== "ready") return false;
+
+  const type = data.type?.toLowerCase() ?? "";
+  if (type === "video" || type === "audio") return false;
+
+  const textType = data.text_type?.toLowerCase() ?? "";
+  const textSource = data.text_source?.toLowerCase() ?? "";
+
+  return (
+    TEXT_TRACK_TYPES.has(type) ||
+    TEXT_TRACK_KINDS.has(textType) ||
+    GENERATED_TEXT_SOURCES.has(textSource)
+  );
+}

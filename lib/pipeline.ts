@@ -10,10 +10,13 @@ import {
 } from "@/lib/mail";
 import {
   createMuxAsset,
+  isMissingTranscriptError,
   playbackIdFromAsset,
   startRobotJobs,
   type MuxAsset,
+  type MuxTrack,
 } from "@/lib/mux";
+import { isReadyCaptionTrack } from "@/lib/mux-webhook";
 import { decodePassthrough, encodePassthrough } from "@/lib/passthrough";
 import {
   bindEmailToAsset,
@@ -22,6 +25,7 @@ import {
   claimSend,
   jobsAreTerminal,
   readCoverage,
+  releaseRobotStart,
   saveCoverageMeta,
   saveJob,
   savePlaybackId,
@@ -112,22 +116,58 @@ export async function handleAssetReady(asset: MuxAsset) {
     playbackId,
   );
 
-  if (!(await claimRobotStart(asset.id))) {
+  // Generated captions finish after video.asset.ready; Robots need a ready text track.
+  return { ok: true, saved: true as const };
+}
+
+export async function handleTrackReady(track: MuxTrack) {
+  if (!isReadyCaptionTrack(track)) {
+    return { ok: true, skipped: "not-a-text-track" as const };
+  }
+
+  const assetId = track.asset_id;
+  if (!assetId) {
+    throw new Error("missing asset_id on text track");
+  }
+
+  return startCoverageRobots(assetId);
+}
+
+async function startCoverageRobots(assetId: string) {
+  const record = await readCoverage(assetId);
+  if (!record) {
+    throw new Error(`No coverage meta for asset ${assetId}`);
+  }
+
+  if (!(await claimRobotStart(assetId))) {
     return { ok: true, skipped: "robots-already-started" as const };
   }
 
   const passthrough = encodePassthrough(
     {
-      emailId: meta.emailId,
-      from: meta.from,
-      subject: meta.subject,
-      replyTo: meta.replyTo,
+      emailId: record.emailId,
+      from: record.from,
+      subject: record.subject,
+      replyTo: record.replyTo,
     },
     4000,
   );
 
-  await startRobotJobs(asset.id, passthrough);
-  return { ok: true, started: true as const };
+  try {
+    await startRobotJobs(assetId, passthrough);
+    return { ok: true, started: true as const };
+  } catch (error) {
+    await releaseRobotStart(assetId);
+    if (isMissingTranscriptError(error)) {
+      console.warn("mux robots skipped; transcript not ready", assetId, error);
+      return {
+        ok: true,
+        skipped: "transcript-not-ready" as const,
+        retry: true as const,
+      };
+    }
+    throw error;
+  }
 }
 
 export async function handleAssetErrored(asset: MuxAsset) {

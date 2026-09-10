@@ -16,7 +16,22 @@ function muxAuthHeader(): string {
   return `Basic ${Buffer.from(`${tokenId}:${tokenSecret}`).toString("base64")}`;
 }
 
+export class MuxRequestError extends Error {
+  readonly status: number;
+  readonly path: string;
+  readonly body: string;
+
+  constructor(method: string, path: string, status: number, body: string) {
+    super(`Mux ${method} ${path} ${status}: ${body}`);
+    this.name = "MuxRequestError";
+    this.status = status;
+    this.path = path;
+    this.body = body;
+  }
+}
+
 async function muxFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = init?.method ?? "GET";
   const response = await fetch(`${MUX_API}${path}`, {
     ...init,
     headers: {
@@ -29,10 +44,17 @@ async function muxFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Mux ${init?.method ?? "GET"} ${path} ${response.status}: ${body}`);
+    throw new MuxRequestError(method, path, response.status, body);
   }
 
   return (await response.json()) as T;
+}
+
+export function isMissingTranscriptError(error: unknown): boolean {
+  if (!(error instanceof MuxRequestError) || error.status !== 422) {
+    return false;
+  }
+  return /no transcript available|ready text track/i.test(error.body);
 }
 
 export type MuxAsset = {
@@ -41,6 +63,15 @@ export type MuxAsset = {
   passthrough?: string;
   playback_ids?: Array<{ id: string; policy?: string }>;
   errors?: { type?: string; messages?: string[] };
+};
+
+export type MuxTrack = {
+  id: string;
+  asset_id?: string;
+  type?: string;
+  text_type?: string;
+  text_source?: string;
+  status?: string;
 };
 
 export async function createMuxAsset(inputUrl: string, meta: CoverageMeta) {
