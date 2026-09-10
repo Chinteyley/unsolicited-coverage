@@ -1,0 +1,139 @@
+:root {
+  --paper: #f3e6c4;
+  --ink: #221c14;
+  --rule: #3a2a16;
+  --stamp: #9b1d1d;
+  --muted: #5c4a32;
+  --desk: #1b1814;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 20% 0%, #2a2318 0%, transparent 50%),
+    var(--desk);
+  color: var(--ink);
+  font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+}
+
+a {
+  color: inherit;
+}
+
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px 48px;
+}
+
+.memo {
+  width: min(680px, 100%);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 8px 12px 0 rgba(0, 0, 0, 0.35);
+  padding: 36px 40px 40px;
+  position: relative;
+}
+
+.memo::after {
+  content: "";
+  position: absolute;
+  inset: auto 28px 18px auto;
+  width: 90px;
+  height: 42px;
+  background: radial-gradient(circle at 30% 40%, rgba(90, 55, 20, 0.18), transparent 70%);
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.kicker {
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--stamp);
+  margin: 0 0 8px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: clamp(34px, 6vw, 52px);
+  line-height: 0.95;
+  font-weight: 600;
+}
+
+.deck {
+  margin: 0 0 28px;
+  font-size: 18px;
+  line-height: 1.4;
+  max-width: 34em;
+}
+
+.stamp {
+  display: inline-block;
+  margin: 0 0 28px;
+  padding: 7px 14px;
+  border: 3px solid var(--stamp);
+  color: var(--stamp);
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-size: 22px;
+  letter-spacing: 0.16em;
+  transform: rotate(-3.5deg);
+}
+
+dl {
+  margin: 0 0 28px;
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+dt {
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+dd {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+code,
+.addr {
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-size: 14px;
+}
+
+.addr {
+  background: rgba(155, 29, 29, 0.08);
+  padding: 2px 6px;
+}
+
+footer {
+  border-top: 1px dashed var(--rule);
+  padding-top: 16px;
+  font-family: var(--font-mono), "Courier New", monospace;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
