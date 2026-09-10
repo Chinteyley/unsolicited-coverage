@@ -81,6 +81,10 @@ export async function claimRobotStart(assetId: string) {
   return ok === "OK";
 }
 
+export async function releaseRobotStart(assetId: string) {
+  await client().del(robotsLockKey(assetId));
+}
+
 export async function saveJob(
   assetId: string,
   workflow: RobotWorkflow,

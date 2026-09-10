@@ -11,8 +11,9 @@ Mux × Resend hackathon — Best reply wins.
 1. Resend webhook `email.received` hits `POST /api/webhooks/resend`.
 2. The handler fetches the full message via the Receiving API (webhooks are metadata-only), then takes the first video/media URL from the body or a video attachment download link.
 3. `POST /video/v1/assets` creates a Mux asset from that URL. Asset `passthrough` stores `{ emailId, from, subject, replyTo }` (trimmed to Mux’s 255-character asset limit). The same JSON is stored in Redis and sent in full on Robots jobs.
-4. On `video.asset.ready`, three Robots jobs start. Token needs the `robots:*` scope.
-5. `POST /api/webhooks/mux` collects completed jobs (event names use underscores: `robots.job.find_key_moments.completed`). When all three are terminal, Resend sends `RE: {original subject}`.
+4. On `video.asset.ready`, save playback/meta only. Generated captions finish later; Robots need a ready text track.
+5. On `video.asset.track.ready` for a text/subtitle/caption track (`text_source: generated_vod` for auto-captions), three Robots jobs start. Token needs the `robots:*` scope. Duplicate track events are ignored via `claimRobotStart`.
+6. `POST /api/webhooks/mux` collects completed jobs (event names use underscores: `robots.job.find_key_moments.completed`). When all three are terminal, Resend sends `RE: {original subject}`.
 
 Both webhook signatures are verified (Resend/Svix and Mux `mux-signature`).
 
@@ -22,7 +23,7 @@ Both webhook signatures are verified (Resend/Svix and Mux `mux-signature`).
 | --- | --- | --- |
 | `GET` | `/` | Landing: what it is, where to email, hackathon line |
 | `POST` | `/api/webhooks/resend` | Inbound `email.received` |
-| `POST` | `/api/webhooks/mux` | `video.asset.ready` / `errored` + Robots job events |
+| `POST` | `/api/webhooks/mux` | `video.asset.ready` / `errored` / `track.ready` + Robots job events |
 
 ## Setup
 
@@ -61,6 +62,7 @@ Pending jobs live in Redis so serverless invocations can wait for all three Robo
 3. Subscribe at least to:
    - `video.asset.ready`
    - `video.asset.errored`
+   - `video.asset.track.ready`
    - `robots.job.summarize.completed` / `.errored`
    - `robots.job.generate_chapters.completed` / `.errored`
    - `robots.job.find_key_moments.completed` / `.errored`
