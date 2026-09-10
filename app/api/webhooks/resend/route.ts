@@ -9,10 +9,10 @@ export const maxDuration = 30;
 
 export async function POST(request: Request) {
   const payload = await request.text();
-  const { webhookSecret } = resendEnv();
 
   let event;
   try {
+    const { webhookSecret } = resendEnv();
     event = resendClient().webhooks.verify({
       payload,
       headers: {
